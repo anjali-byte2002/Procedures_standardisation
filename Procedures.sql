@@ -1,0 +1,173 @@
+-- PROCEDURES
+
+SELECT COUNT(DISTINCT PROCEDURECODE) FROM dcnd.PROCEDURECODEREFERENCE; -- 29570 
+
+select COUNT(DISTINCT PROCEDURECODE) FROM tncpa.PROCEDURECODEREFERENCE; -- 29570
+
+ -- COUNT OF CPT FORMAT CODES
+SELECT COUNT(DISTINCT PROCEDURECODE) AS distinct_cpt_level1_codes -- 11560
+FROM dcnd.PROCEDURECODEREFERENCE
+WHERE PROCEDURECODE IS NOT NULL
+AND TRIM(PROCEDURECODE) <> ''
+AND TRIM(PROCEDURECODE) REGEXP '^[0-9]{5}$';
+
+SELECT COUNT(DISTINCT PROCEDURECODE) AS distinct_cpt_level1_codes -- 11560
+FROM tncpa.PROCEDURECODEREFERENCE
+WHERE PROCEDURECODE IS NOT NULL
+AND TRIM(PROCEDURECODE) <> ''
+AND TRIM(PROCEDURECODE) REGEXP '^[0-9]{5}$';
+
+-- CODES OF CPT FORMAT IN TNCPA
+SELECT DISTINCT
+    PROCEDURECODE,
+    DESCRIPTION,
+    COMMONDESCRIPTION
+FROM tncpa.PROCEDURECODEREFERENCE
+WHERE PROCEDURECODE IS NOT NULL
+AND TRIM(PROCEDURECODE) <> ''
+AND TRIM(PROCEDURECODE) REGEXP '^[0-9]{5}$'
+ORDER BY PROCEDURECODE;
+
+SELECT DISTINCT
+    PROCEDURECODE,
+    DESCRIPTION,
+    COMMONDESCRIPTION
+FROM dcnd.PROCEDURECODEREFERENCE
+WHERE PROCEDURECODE IS NOT NULL
+AND TRIM(PROCEDURECODE) <> ''
+AND TRIM(PROCEDURECODE) REGEXP '^[0-9]{5}$'
+ORDER BY PROCEDURECODE;
+
+-- CODES OF HCPCS FORMAT IN TNCPA
+
+SELECT COUNT(DISTINCT PROCEDURECODE) AS hcpcs_count -- 12594
+FROM tncpa.PROCEDURECODEREFERENCE
+WHERE PROCEDURECODE IS NOT NULL
+AND TRIM(PROCEDURECODE) <> ''
+AND UPPER(TRIM(PROCEDURECODE)) REGEXP '^[A-Z][0-9]{4}$';
+
+SELECT COUNT(DISTINCT PROCEDURECODE) AS hcpcs_count -- 12594
+FROM dcnd.PROCEDURECODEREFERENCE
+WHERE PROCEDURECODE IS NOT NULL
+AND TRIM(PROCEDURECODE) <> ''
+AND UPPER(TRIM(PROCEDURECODE)) REGEXP '^[A-Z][0-9]{4}$';
+
+SELECT DISTINCT
+    PROCEDURECODE,
+    DESCRIPTION,
+    COMMONDESCRIPTION
+FROM tncpa.PROCEDURECODEREFERENCE
+WHERE PROCEDURECODE IS NOT NULL
+AND TRIM(PROCEDURECODE) <> ''
+AND UPPER(TRIM(PROCEDURECODE)) REGEXP '^[A-Z][0-9]{4}$'
+ORDER BY PROCEDURECODE;
+
+
+
+select * from semantics.hcpcs limit 50;
+
+-- connect hcpc lookup to the tncpa hcpcs codes -- 3971 more codes in tncpa db than lookup
+
+SELECT DISTINCT
+    a.PROCEDURECODE,
+    a.DESCRIPTION,
+    a.COMMONDESCRIPTION,
+
+    b.HCPC AS hcpcs_code_std,
+    b.`LONG DESCRIPTION`  AS hcpcs_long_desc,
+    b.`SHORT DESCRIPTION` AS hcpcs_short_desc
+
+FROM tncpa.PROCEDURECODEREFERENCE a
+
+LEFT JOIN semantics.hcpcs b
+    ON UPPER(TRIM(a.PROCEDURECODE)) = UPPER(TRIM(b.HCPC))
+
+WHERE a.PROCEDURECODE IS NOT NULL
+AND TRIM(a.PROCEDURECODE) <> ''
+AND UPPER(TRIM(a.PROCEDURECODE)) REGEXP '^[A-Z][0-9]{4}$'
+
+ORDER BY a.PROCEDURECODE;
+
+-- rgd_udm_silver.procedures mapping to both tncpa and lookup 
+
+SELECT
+    p.proc_code,
+    p.proc_name,
+    t.PROCEDURECODE,
+    h.HCPC
+FROM 
+    (SELECT DISTINCT proc_code, proc_name 
+     FROM rgd_udm_silver.procedures
+     WHERE proc_code IS NOT NULL) p
+
+LEFT JOIN tncpa.PROCEDURECODEREFERENCE t
+    ON p.proc_code = t.PROCEDURECODE
+
+LEFT JOIN semantics.hcpcs h
+    ON p.proc_code = h.HCPC;
+
+SELECT DISTINCT
+    p.proc_code,
+    p.proc_name,
+
+    t.PROCEDURECODE AS tncpa_code,
+    h.HCPC AS hcpcs_code
+
+FROM rgd_udm_silver.procedures p
+
+LEFT JOIN tncpa.PROCEDURECODEREFERENCE t
+    ON p.proc_code = t.PROCEDURECODE
+
+LEFT JOIN semantics.hcpcs h
+    ON p.proc_code = h.HCPC
+
+WHERE p.proc_code IS NOT NULL
+AND p.proc_code <> '';
+
+SELECT DISTINCT
+    p.proc_code,
+    p.proc_name,
+
+    t.PROCEDURECODE AS tncpa_code,
+    h.HCPC AS hcpcs_code
+
+FROM rgd_udm_silver.procedures p
+
+LEFT JOIN tncpa.PROCEDURECODEREFERENCE t
+    ON p.proc_code = t.PROCEDURECODE
+
+LEFT JOIN semantics.hcpcs h
+    ON p.proc_code = h.HCPC
+
+WHERE p.proc_code IS NOT NULL
+AND p.proc_code <> '';
+
+select count(distinct proc_code) from rgd_udm_silver.procedures;
+
+select * from tncpa.PROCEDURECODEREFERENCE limit 50;
+select * from semantics.hcpcs limit 50;
+
+-- Procedure Code Mapping with TnCPA and HCPCS Reference Descriptions
+
+SELECT DISTINCT
+    p.proc_code,
+    p.proc_name,
+
+    t.PROCEDURECODE AS tncpa_code,
+    t.COMMONDESCRIPTION AS tncpa_common_desc,
+    t.DESCRIPTION AS tncpa_long_desc,
+
+    h.HCPC AS hcpcs_code,
+    h.`SHORT DESCRIPTION` AS hcpcs_short_desc,
+    h.`LONG DESCRIPTION` AS hcpcs_long_desc
+
+    FROM rgd_udm_silver.procedures p
+
+    LEFT JOIN tncpa.PROCEDURECODEREFERENCE t
+    ON p.proc_code = t.PROCEDURECODE
+
+    LEFT JOIN semantics.hcpcs h
+    ON p.proc_code = h.HCPC
+
+    WHERE p.proc_code IS NOT NULL
+    AND p.proc_code <> '';
